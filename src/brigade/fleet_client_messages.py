@@ -374,6 +374,7 @@ def send(
     sender_label: str | None = None,
     client_id: str | None = None,
     token_file: str | None = None,
+    reply_to: int | None = None,
 ) -> dict[str, Any]:
     hub, token, node_id = _settings() if token_file is None else _settings(token_file)
     try:
@@ -385,7 +386,7 @@ def send(
         raise fleet_client.FleetClientError(str(exc)) from exc
     if not isinstance(priority, str) or priority not in _message_limits.PRIORITIES:
         raise fleet_client.FleetClientError("priority must be low, normal, high, or urgent")
-    message = {
+    message: dict[str, Any] = {
         "action": "send",
         "to": recipient,
         "subject": subject,
@@ -395,6 +396,9 @@ def send(
         "client_id": _client_id(client_id),
         "enqueued_at": datetime.now(timezone.utc).isoformat(),
     }
+    if reply_to is not None:
+        _validate_sqlite_integer(reply_to, "reply_to")
+        message["reply_to"] = reply_to
     message.update(_wire_metadata(thread=thread, kind=kind, sender_label=sender_label))
     return _send_ordered(message, hub, token, node_id)
 
